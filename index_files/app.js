@@ -215,45 +215,43 @@ function renderCategories() {
 function renderProductGrid() {
   const grid = document.getElementById('product-grid');
   const activeCat = document.querySelector('.cat-tab.active')?.dataset.cat || 'All';
-  const searchInput = document.getElementById('pos-search');
-  const search = searchInput ? searchInput.value.toLowerCase() : '';
+  const search = document.getElementById('pos-search').value.toLowerCase();
 
-  let filteredProducts = state.products;
-  if (activeCat !== 'All') filteredProducts = filteredProducts.filter(p => p.category === activeCat);
-  if (search) filteredProducts = filteredProducts.filter(p => p.name.toLowerCase().includes(search));
+  let products = state.products;
+  if (activeCat !== 'All') products = products.filter(p => p.category === activeCat);
+  if (search) products = products.filter(p => p.name.toLowerCase().includes(search));
 
-  if (filteredProducts.length === 0) {
+  if (products.length === 0) {
     grid.innerHTML = `<div class="empty-grid"><span>🔍</span><p>No products found</p></div>`;
     return;
   }
 
   grid.innerHTML = '';
-  filteredProducts.forEach(product => {
+  products.forEach(product => {
     const card = document.createElement('div');
     card.className = 'product-card';
     card.id = 'prod-card-' + product.id;
 
-    const hasImage = state.imageDataCache && state.imageDataCache[product.id];
-    const imgHtml = hasImage 
+    const imgContent = state.imageDataCache[product.id]
       ? `<img src="${state.imageDataCache[product.id]}" alt="${product.name}" />`
-      : `<span>${product.emoji || '📦'}</span>`;
+      : product.emoji || '📦';
 
     card.innerHTML = `
-      <div class="product-card-img">${imgHtml}</div>
+      <div class="product-card-img">${
+        state.imageDataCache[product.id]
+          ? `<img src="${state.imageDataCache[product.id]}" alt="${product.name}" />`
+          : `<span>${product.emoji || '📦'}</span>`
+      }</div>
       <div class="product-card-info">
         <div class="product-card-name">${product.name}</div>
         <div class="product-card-price">${fmt(product.price)}</div>
       </div>
       <button class="product-card-add" title="Add to order">+</button>
     `;
-    
-    // Use a clearer event listener
-    const addBtn = card.querySelector('.product-card-add');
-    addBtn.addEventListener('click', (e) => {
+    card.querySelector('.product-card-add').addEventListener('click', (e) => {
       e.stopPropagation();
       addToOrder(product);
     });
-    
     card.addEventListener('click', () => addToOrder(product));
     grid.appendChild(card);
   });
@@ -881,32 +879,18 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('active');
 }
 
-/* ===================== IMAGE UPLOAD & COMPRESSION ===================== */
+/* ===================== IMAGE UPLOAD ===================== */
 function handleImageUpload(file) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
-    const img = new Image();
-    img.onload = () => {
-      // Resize to max 300x300 for POS performance and storage
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      const MAX = 300;
-      if (width > height) { if (width > MAX) { height *= MAX / width; width = MAX; } }
-      else { if (height > MAX) { width *= MAX / height; height = MAX; } }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality JPEG
-      document.getElementById('product-preview-img').src = dataUrl;
-      document.getElementById('product-preview-img').classList.remove('hidden');
-      document.getElementById('image-placeholder').style.display = 'none';
-      state.imageDataCache['__pending__'] = dataUrl;
-    };
-    img.src = e.target.result;
+    const dataUrl = e.target.result;
+    const img = document.getElementById('product-preview-img');
+    img.src = dataUrl;
+    img.classList.remove('hidden');
+    document.getElementById('image-placeholder').style.display = 'none';
+    // Store temp image with key 'pending'
+    state.imageDataCache['__pending__'] = dataUrl;
   };
   reader.readAsDataURL(file);
 }
