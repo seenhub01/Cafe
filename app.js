@@ -31,47 +31,67 @@ let state = {
   imageDataCache: {},  // productId -> base64 data URL
 };
 
-/* ---------- PERSISTENCE (CLOUD + LOCAL) ---------- */
+/* ---------- PERSISTENCE (CLOUD + INDEXEDDB) ---------- */
+// Initialize IndexedDB for large image storage
+const dbRequest = indexedDB.open('CafeImageStore', 1);
+dbRequest.onupgradeneeded = (e) => {
+  e.target.result.createObjectStore('images');
+};
+
+async function saveImage(id, dataUrl) {
+  return new Promise((resolve) => {
+    const tx = dbRequest.result.transaction('images', 'readwrite');
+    tx.objectStore('images').put(dataUrl, id);
+    tx.oncomplete = () => resolve();
+  });
+}
+
+async function loadImage(id) {
+  return new Promise((resolve) => {
+    const tx = dbRequest.result.transaction('images', 'readonly');
+    const req = tx.objectStore('images').get(id);
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
 async function saveState() {
-  // 1. Save locally for speed
+  // 1. Save products/orders locally
   localStorage.setItem('cafe_products', JSON.stringify(state.products));
   localStorage.setItem('cafe_orders', JSON.stringify(state.orders));
-  localStorage.setItem('cafe_images', JSON.stringify(state.imageDataCache));
 
-  // 2. Save to Cloud (if DB is connected)
+  // 2. Images are saved individually via saveImage() when products are created
+  
+  // 3. Save to Cloud (if DB is connected)
   if (db) {
     try {
       await db.collection('settings').doc('data').set({
         products: state.products,
-        orders: state.orders.slice(0, 100), // Only sync last 100 orders to cloud for speed
+        orders: state.orders.slice(0, 50),
         updatedAt: Date.now()
       }, { merge: true });
-      console.log("Cloud Backup Successful");
-    } catch (e) {
-      console.warn("Cloud Sync Failed (working offline)", e);
-    }
+    } catch (e) { console.warn("Cloud Sync offline"); }
   }
 }
 
 async function loadState() {
-  const CURRENT_VERSION = 'v2_menu_update';
+  const CURRENT_VERSION = 'v3_storage_update';
   const savedVersion = localStorage.getItem('cafe_app_version');
 
-  // 1. Load locally first for instant startup
   try {
     state.products = JSON.parse(localStorage.getItem('cafe_products') || '[]');
     state.orders = JSON.parse(localStorage.getItem('cafe_orders') || '[]');
-    state.imageDataCache = JSON.parse(localStorage.getItem('cafe_images') || '{}');
-  } catch (e) { console.error('Local load failed'); }
+    
+    // Load images for all products from IndexedDB
+    for (let p of state.products) {
+      state.imageDataCache[p.id] = await loadImage(p.id);
+    }
+  } catch (e) { console.error('Load failed'); }
 
-  // 2. Force refresh if it's an old version or empty
   if (state.products.length === 0 || savedVersion !== CURRENT_VERSION) {
-    console.log("New version detected, loading fresh menu...");
     loadSampleProducts();
     localStorage.setItem('cafe_app_version', CURRENT_VERSION);
   }
 
-  // 3. Sync from Cloud (if DB is connected)
   if (db) {
     db.collection('settings').doc('data').onSnapshot((doc) => {
       if (doc.exists()) {
@@ -969,22 +989,28 @@ function bindEvents() {
   });
 
   // Product modal: save/cancel/close
-  document.getElementById('product-modal-save').addEventListener('click', () => {
+  document.getElementById('product-modal-save').addEventListener('click', async () => {
     const editingId = document.getElementById('editing-product-id').value;
     const pendingImg = state.imageDataCache['__pending__'];
-    // Save product first
+    
+    // Save product basic info
     saveProduct();
-    // Now assign pending image to correct product
+    
+    // Handle image specifically via IndexedDB
     if (pendingImg) {
-      if (editingId) {
-        state.imageDataCache[editingId] = pendingImg;
-      } else {
-        // new product was pushed last
+      let targetId = editingId;
+      if (!targetId) {
+        // new product (was pushed last in saveProduct)
         const lastProduct = state.products[state.products.length - 1];
-        if (lastProduct) state.imageDataCache[lastProduct.id] = pendingImg;
+        targetId = lastProduct ? lastProduct.id : null;
       }
-      delete state.imageDataCache['__pending__'];
-      saveState();
+      
+      if (targetId) {
+        state.imageDataCache[targetId] = pendingImg;
+        await saveImage(targetId, pendingImg);
+        delete state.imageDataCache['__pending__'];
+        saveState();
+      }
     }
     renderProductGrid();
   });
