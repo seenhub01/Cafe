@@ -1,6 +1,23 @@
 // =============================================
-//   SEENHUB CAFE - ANDROID APP LOGIC
+//   SEENHUB CAFE - CLOUD SYNC POS LOGIC
 // =============================================
+
+/* ---------- FIREBASE CONFIG ---------- */
+// PASTE YOUR FIREBASE CONFIG HERE:
+const firebaseConfig = {
+  // apiKey: "...",
+  // authDomain: "...", ...
+};
+
+// Initialize Firebase (if config is provided)
+let db = null;
+if (firebaseConfig.apiKey) {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  // Enable offline persistence
+  db.settings({ cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED });
+  db.enablePersistence().catch(err => console.error("Persistence failed", err));
+}
 
 /* ---------- STATE ---------- */
 let state = {
@@ -14,26 +31,52 @@ let state = {
   imageDataCache: {},  // productId -> base64 data URL
 };
 
-/* ---------- PERSISTENCE ---------- */
-function saveState() {
+/* ---------- PERSISTENCE (CLOUD + LOCAL) ---------- */
+async function saveState() {
+  // 1. Save locally for speed
   localStorage.setItem('cafe_products', JSON.stringify(state.products));
   localStorage.setItem('cafe_orders', JSON.stringify(state.orders));
   localStorage.setItem('cafe_images', JSON.stringify(state.imageDataCache));
-}
-function loadState() {
-  try {
-    const products = JSON.parse(localStorage.getItem('cafe_products') || '[]');
-    const orders = JSON.parse(localStorage.getItem('cafe_orders') || '[]');
-    const images = JSON.parse(localStorage.getItem('cafe_images') || '{}');
-    state.products = products;
-    state.orders = orders;
-    state.imageDataCache = images;
-  } catch (e) {
-    console.error('Failed to load state', e);
-    state.products = [];
-    state.orders = [];
-    state.imageDataCache = {};
+
+  // 2. Save to Cloud (if DB is connected)
+  if (db) {
+    try {
+      await db.collection('settings').doc('data').set({
+        products: state.products,
+        orders: state.orders.slice(0, 100), // Only sync last 100 orders to cloud for speed
+        updatedAt: Date.now()
+      }, { merge: true });
+      console.log("Cloud Backup Successful");
+    } catch (e) {
+      console.warn("Cloud Sync Failed (working offline)", e);
+    }
   }
+}
+
+async function loadState() {
+  // 1. Load locally first for instant startup
+  try {
+    state.products = JSON.parse(localStorage.getItem('cafe_products') || '[]');
+    state.orders = JSON.parse(localStorage.getItem('cafe_orders') || '[]');
+    state.imageDataCache = JSON.parse(localStorage.getItem('cafe_images') || '{}');
+  } catch (e) { console.error('Local load failed'); }
+
+  // 2. Sync from Cloud
+  if (db) {
+    db.collection('settings').doc('data').onSnapshot((doc) => {
+      if (doc.exists()) {
+        const cloudData = doc.data();
+        state.products = cloudData.products || state.products;
+        // Merge orders intelligently or just take cloud if newer
+        if (cloudData.updatedAt > (state.lastSync || 0)) {
+           state.orders = cloudData.orders || state.orders;
+           state.lastSync = cloudData.updatedAt;
+        }
+        renderPOS(); // Refresh UI when cloud data arrives
+      }
+    });
+  }
+
   if (state.products.length === 0) loadSampleProducts();
 }
 
