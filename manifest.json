@@ -1,0 +1,24 @@
+{
+  "name": "Seenhub Cafe",
+  "short_name": "SeenhubCafe",
+  "description": "Point of Sale System for Seenhub Cafe",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d0a1a",
+  "theme_color": "#1a0a2e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["business", "food"],
+  "lang": "en"
+}

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a0a2e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="description" content="Seenhub Cafe POS - Point of Sale System for cafes and restaurants" />
+  <title>Seenhub Cafe</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+      <div class="splash-content">
+        <div class="splash-logo">☕</div>
+        <h1>Seenhub Cafe</h1>
+        <p>POS System</p>
+        <div class="splash-loader"><div></div></div>
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-btn active" data-page="pos" id="nav-pos">
+        <span class="nav-icon">🛒</span>
+        <span>POS</span>
+      </button>
+      <button class="nav-btn" data-page="products" id="nav-products">
+        <span class="nav-icon">📦</span>
+        <span>Products</span>
+      </button>
+      <button class="nav-btn" data-page="orders" id="nav-orders">
+        <span class="nav-icon">📋</span>
+        <span>Orders</span>
+      </button>
+      <button class="nav-btn" data-page="reports" id="nav-reports">
+        <span class="nav-icon">📊</span>
+        <span>Reports</span>
+      </button>
+    </nav>
+
+    <!-- Pages Container -->
+    <main id="main-content">
+
+      <!-- ==================== POS PAGE ==================== -->
+      <div class="page active" id="page-pos">
+        <header class="page-header">
+          <div class="header-left">
+            <div class="cafe-logo">☕</div>
+            <div>
+              <h1>Seenhub Cafe</h1>
+              <p class="header-date" id="header-date"></p>
+            </div>
+          </div>
+          <div class="header-right">
+            <button class="icon-btn" id="btn-print-last" title="Print Last Order">🖨️</button>
+          </div>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="search-bar-wrap">
+          <input type="text" id="pos-search" class="search-input" placeholder="🔍 Search products..." />
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="category-tabs" id="category-tabs">
+          <button class="cat-tab active" data-cat="All">All</button>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="product-grid" id="product-grid">
+          <!-- Products injected here -->
+        </div>
+
+        <!-- Order Panel -->
+        <div class="order-panel" id="order-panel">
+          <div class="order-panel-header">
+            <span>Current Order</span>
+            <button class="clear-btn" id="clear-order-btn">Clear</button>
+          </div>
+          <div class="order-items" id="order-items">
+            <div class="empty-order">
+              <span>🛒</span>
+              <p>No items yet</p>
+            </div>
+          </div>
+          <div class="order-footer">
+            <div class="customer-input-row">
+              <input type="text" id="customer-name" placeholder="Customer name (optional)" class="customer-input" />
+            </div>
+            <div class="totals-row">
+              <span>Subtotal</span><span id="subtotal-val">AED 0.00</span>
+            </div>
+            <div class="totals-row tax-row">
+              <span>Tax (5%)</span><span id="tax-val">AED 0.00</span>
+            </div>
+            <div class="totals-row total-row">
+              <span>TOTAL</span><span id="total-val">AED 0.00</span>
+            </div>
+            <div class="payment-btns">
+              <button class="pay-btn cash-btn" id="pay-cash-btn">💵 Cash</button>
+              <button class="pay-btn card-btn" id="pay-card-btn">💳 Card</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== PRODUCTS PAGE ==================== -->
+      <div class="page" id="page-products">
+        <header class="page-header">
+          <h1>Products</h1>
+          <button class="add-btn" id="btn-add-product">+ Add</button>
+        </header>
+
+        <div class="products-list" id="products-list">
+          <!-- Product cards -->
+        </div>
+      </div>
+
+      <!-- ==================== ORDERS PAGE ==================== -->
+      <div class="page" id="page-orders">
+        <header class="page-header">
+          <h1>Order History</h1>
+          <button class="icon-btn" id="btn-print-last-order">🖨️ Print Last</button>
+        </header>
+
+        <div class="filter-row">
+          <select id="orders-filter" class="filter-select">
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="all">All Time</option>
+          </select>
+        </div>
+
+        <div class="orders-list" id="orders-list">
+          <!-- Orders injected here -->
+        </div>
+      </div>
+
+      <!-- ==================== REPORTS PAGE ==================== -->
+      <div class="page" id="page-reports">
+        <header class="page-header">
+          <h1>Sales Reports</h1>
+        </header>
+
+        <div class="report-tabs">
+          <button class="report-tab active" data-period="daily">Daily</button>
+          <button class="report-tab" data-period="monthly">Monthly</button>
+        </div>
+
+        <div id="report-content">
+          <!-- Report content injected here -->
+        </div>
+      </div>
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- Add/Edit Product Modal -->
+    <div class="modal-overlay" id="product-modal-overlay">
+      <div class="modal" id="product-modal">
+        <div class="modal-header">
+          <h2 id="product-modal-title">Add Product</h2>
+          <button class="modal-close" id="product-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Product Image</label>
+            <div class="image-upload-area" id="image-upload-area">
+              <img id="product-preview-img" src="" alt="" class="preview-img hidden" />
+              <div id="image-placeholder">
+                <span>📷</span>
+                <p>Tap to upload image</p>
+              </div>
+              <input type="file" id="product-image-input" accept="image/*" hidden />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="product-name-input">Product Name *</label>
+            <input type="text" id="product-name-input" class="form-input" placeholder="e.g. Cappuccino" />
+          </div>
+          <div class="form-group">
+            <label for="product-category-input">Category</label>
+            <input type="text" id="product-category-input" class="form-input" placeholder="e.g. Coffee, Food, Drinks..." />
+          </div>
+          <div class="form-group">
+            <label for="product-price-input">Price (AED) *</label>
+            <input type="number" id="product-price-input" class="form-input" placeholder="0.00" min="0" step="0.5" />
+          </div>
+          <input type="hidden" id="editing-product-id" value="" />
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn cancel" id="product-modal-cancel">Cancel</button>
+          <button class="modal-btn save" id="product-modal-save">Save Product</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Success Modal -->
+    <div class="modal-overlay" id="payment-modal-overlay">
+      <div class="modal small-modal" id="payment-modal">
+        <div class="success-icon">✅</div>
+        <h2>Payment Complete!</h2>
+        <p id="payment-modal-total"></p>
+        <p id="payment-modal-method"></p>
+        <div class="modal-footer">
+          <button class="modal-btn cancel" id="payment-modal-close">Close</button>
+          <button class="modal-btn save" id="payment-modal-print">🖨️ Print Receipt</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Receipt Print Frame (hidden) -->
+    <iframe id="print-frame" style="display:none;"></iframe>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
