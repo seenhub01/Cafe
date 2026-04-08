@@ -54,6 +54,9 @@ async function saveState() {
 }
 
 async function loadState() {
+  const CURRENT_VERSION = 'v2_menu_update';
+  const savedVersion = localStorage.getItem('cafe_app_version');
+
   // 1. Load locally first for instant startup
   try {
     state.products = JSON.parse(localStorage.getItem('cafe_products') || '[]');
@@ -61,23 +64,27 @@ async function loadState() {
     state.imageDataCache = JSON.parse(localStorage.getItem('cafe_images') || '{}');
   } catch (e) { console.error('Local load failed'); }
 
-  // 2. Sync from Cloud
+  // 2. Force refresh if it's an old version or empty
+  if (state.products.length === 0 || savedVersion !== CURRENT_VERSION) {
+    console.log("New version detected, loading fresh menu...");
+    loadSampleProducts();
+    localStorage.setItem('cafe_app_version', CURRENT_VERSION);
+  }
+
+  // 3. Sync from Cloud (if DB is connected)
   if (db) {
     db.collection('settings').doc('data').onSnapshot((doc) => {
       if (doc.exists()) {
         const cloudData = doc.data();
         state.products = cloudData.products || state.products;
-        // Merge orders intelligently or just take cloud if newer
         if (cloudData.updatedAt > (state.lastSync || 0)) {
            state.orders = cloudData.orders || state.orders;
            state.lastSync = cloudData.updatedAt;
         }
-        renderPOS(); // Refresh UI when cloud data arrives
+        renderPOS(); 
       }
     });
   }
-
-  if (state.products.length === 0) loadSampleProducts();
 }
 
 function loadSampleProducts() {
