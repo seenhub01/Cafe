@@ -74,7 +74,7 @@ async function saveState() {
 }
 
 async function loadState() {
-  const CURRENT_VERSION = 'v3_storage_update';
+  const CURRENT_VERSION = 'v4_menu_expansion';
   const savedVersion = localStorage.getItem('cafe_app_version');
 
   try {
@@ -128,10 +128,18 @@ function loadSampleProducts() {
     { id: 'f8', name: 'Chicken Cheese Sandwich', category: 'Food', price: 18, emoji: '🥪' },
     { id: 'f9', name: 'Granola with Honey', category: 'Food', price: 21, emoji: '🍯' },
     
+    // New Budget Items (Added from user)
+    { id: 'f10', name: 'Cheese Samoon', category: 'Food', price: 5, emoji: '🍽️' },
+    { id: 'f11', name: 'Cheese With Chips Oman', category: 'Food', price: 5, emoji: '🍽️' },
+    { id: 'f12', name: 'Cheese With Chips Amwaj', category: 'Food', price: 5, emoji: '🍽️' },
+    { id: 'f13', name: 'Vanilla Cake', category: 'Food', price: 4, emoji: '🍰' },
+    { id: 'f14', name: 'Candy', category: 'Food', price: 8, emoji: '🍬' },
+    
     // Drinks
     { id: 'd1', name: 'Sparkling Water', category: 'Drinks', price: 7, emoji: '🫧' },
     { id: 'd2', name: 'Aqua Panna Water', category: 'Drinks', price: 6, emoji: '💧' },
-    { id: 'd3', name: 'Arwa Water 330ml', category: 'Drinks', price: 3, emoji: '🥤' }
+    { id: 'd3', name: 'Arwa Water 330ml', category: 'Drinks', price: 3, emoji: '🥤' },
+    { id: 'd4', name: 'Soft Drink', category: 'Drinks', price: 4, emoji: '🥤' }
   ];
   saveState();
 }
