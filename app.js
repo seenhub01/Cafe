@@ -1012,7 +1012,12 @@ function bindEvents() {
   });
 
   // Payment modal
-  document.getElementById('payment-modal-close').addEventListener('click', () => closeModal('payment-modal-overlay'));
+  document.getElementById('payment-modal-close').addEventListener('click', () => {
+    closeModal('payment-modal-overlay');
+    // Collapse order panel on mobile to "go back" to dashboard
+    document.getElementById('order-panel').classList.remove('expanded');
+    navigateTo('pos');
+  });
   document.getElementById('payment-modal-print').addEventListener('click', () => {
     closeModal('payment-modal-overlay');
     if (state.lastOrder) printReceipt(state.lastOrder);
