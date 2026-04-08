@@ -74,7 +74,7 @@ async function saveState() {
 }
 
 async function loadState() {
-  const CURRENT_VERSION = 'v4_menu_expansion';
+  const CURRENT_VERSION = 'v5_smart_merge';
   const savedVersion = localStorage.getItem('cafe_app_version');
 
   try {
@@ -108,7 +108,7 @@ async function loadState() {
 }
 
 function loadSampleProducts() {
-  state.products = [
+  const samples = [
     // Coffee
     { id: 'p1', name: 'Spanish Latte', category: 'Coffee', price: 24, emoji: '☕' },
     { id: 'p2', name: 'Flat White', category: 'Coffee', price: 21, emoji: '☕' },
@@ -128,7 +128,7 @@ function loadSampleProducts() {
     { id: 'f8', name: 'Chicken Cheese Sandwich', category: 'Food', price: 18, emoji: '🥪' },
     { id: 'f9', name: 'Granola with Honey', category: 'Food', price: 21, emoji: '🍯' },
     
-    // New Budget Items (Added from user)
+    // New Budget Items
     { id: 'f10', name: 'Cheese Samoon', category: 'Food', price: 5, emoji: '🍽️' },
     { id: 'f11', name: 'Cheese With Chips Oman', category: 'Food', price: 5, emoji: '🍽️' },
     { id: 'f12', name: 'Cheese With Chips Amwaj', category: 'Food', price: 5, emoji: '🍽️' },
@@ -141,6 +141,15 @@ function loadSampleProducts() {
     { id: 'd3', name: 'Arwa Water 330ml', category: 'Drinks', price: 3, emoji: '🥤' },
     { id: 'd4', name: 'Soft Drink', category: 'Drinks', price: 4, emoji: '🥤' }
   ];
+
+  // Smart Merge: Don't overwrite, just add missing items
+  samples.forEach(sample => {
+    const exists = state.products.some(p => p.id === sample.id || p.name === sample.name);
+    if (!exists) {
+      state.products.push(sample);
+    }
+  });
+
   saveState();
 }
 
