@@ -82,16 +82,29 @@ async function loadState() {
 
 function loadSampleProducts() {
   state.products = [
-    { id: 'p1', name: 'Espresso', category: 'Coffee', price: 12, emoji: '☕' },
-    { id: 'p2', name: 'Cappuccino', category: 'Coffee', price: 18, emoji: '☕' },
-    { id: 'p3', name: 'Latte', category: 'Coffee', price: 20, emoji: '🥛' },
-    { id: 'p4', name: 'Flat White', category: 'Coffee', price: 18, emoji: '☕' },
-    { id: 'p5', name: 'Americano', category: 'Coffee', price: 14, emoji: '☕' },
-    { id: 'p6', name: 'Croissant', category: 'Food', price: 15, emoji: '🥐' },
-    { id: 'p7', name: 'Sandwich', category: 'Food', price: 28, emoji: '🥪' },
-    { id: 'p8', name: 'Cake Slice', category: 'Food', price: 22, emoji: '🍰' },
-    { id: 'p9', name: 'Orange Juice', category: 'Drinks', price: 16, emoji: '🍊' },
-    { id: 'p10', name: 'Iced Tea', category: 'Drinks', price: 15, emoji: '🧊' },
+    // Coffee
+    { id: 'p1', name: 'Spanish Latte', category: 'Coffee', price: 24, emoji: '☕' },
+    { id: 'p2', name: 'Flat White', category: 'Coffee', price: 21, emoji: '☕' },
+    { id: 'p3', name: 'Cappuccino', category: 'Coffee', price: 21, emoji: '☕' },
+    { id: 'p4', name: 'Coffee Latte', category: 'Coffee', price: 24, emoji: '🥛' },
+    { id: 'p5', name: 'Americano', category: 'Coffee', price: 18, emoji: '☕' },
+    { id: 'p6', name: 'Espresso', category: 'Coffee', price: 13, emoji: '☕' },
+    
+    // Food & Bakery
+    { id: 'f1', name: 'Umm Ali', category: 'Food', price: 25, emoji: '🥣' },
+    { id: 'f2', name: 'Creamy Cheese', category: 'Food', price: 25, emoji: '🧀' },
+    { id: 'f3', name: 'Carrot Cake Slice', category: 'Food', price: 27, emoji: '🍰' },
+    { id: 'f4', name: 'Vanilla Chiffon Cake', category: 'Food', price: 27, emoji: '🍰' },
+    { id: 'f5', name: 'Peanut Butter Cookie', category: 'Bakery', price: 20, emoji: '🍪' },
+    { id: 'f6', name: 'Cinnamon Muffin', category: 'Bakery', price: 9, emoji: '🧁' },
+    { id: 'f7', name: 'Raspberry Muffin', category: 'Bakery', price: 9, emoji: '🧁' },
+    { id: 'f8', name: 'Chicken Cheese Sandwich', category: 'Food', price: 18, emoji: '🥪' },
+    { id: 'f9', name: 'Granola with Honey', category: 'Food', price: 21, emoji: '🍯' },
+    
+    // Drinks
+    { id: 'd1', name: 'Sparkling Water', category: 'Drinks', price: 7, emoji: '🫧' },
+    { id: 'd2', name: 'Aqua Panna Water', category: 'Drinks', price: 6, emoji: '💧' },
+    { id: 'd3', name: 'Arwa Water 330ml', category: 'Drinks', price: 3, emoji: '🥤' }
   ];
   saveState();
 }
