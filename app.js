@@ -312,7 +312,6 @@ function renderOrderItems() {
   if (state.order.length === 0) {
     container.innerHTML = `<div class="empty-order"><span>🛒</span><p>No items yet</p></div>`;
     subtotalEl.textContent = 'AED 0.00';
-    taxEl.textContent = 'AED 0.00';
     totalEl.textContent = 'AED 0.00';
     return;
   }
@@ -342,10 +341,8 @@ function renderOrderItems() {
     container.appendChild(div);
   });
 
-  const tax = subtotal * 0.05;
-  const total = subtotal + tax;
+  const total = subtotal;
   subtotalEl.textContent = fmt(subtotal);
-  taxEl.textContent = fmt(tax);
   totalEl.textContent = fmt(total);
 }
 
@@ -362,15 +359,13 @@ function processPayment(method) {
   }
 
   const subtotal = state.order.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const tax = subtotal * 0.05;
-  const total = subtotal + tax;
+  const total = subtotal;
   const customerName = document.getElementById('customer-name').value.trim();
 
   const order = {
     id: 'ORD-' + String(state.orders.length + 1).padStart(4, '0'),
     items: [...state.order],
     subtotal,
-    tax,
     total,
     method,
     customer: customerName || 'Guest',
@@ -774,7 +769,6 @@ function printReceipt(order) {
     name: 'Seenhub Cafe',
     address: 'Al Ain, UAE',
     phone: '+971 50 911 9699',
-    vatNo: 'TRN 000000000',
   };
 
   const itemsHtml = order.items.map(i => `
@@ -820,7 +814,6 @@ function printReceipt(order) {
         <div class="cafe-name">${cafeInfo.name}</div>
         <div class="small">${cafeInfo.address}</div>
         <div class="small">${cafeInfo.phone}</div>
-        <div class="small">${cafeInfo.vatNo}</div>
       </div>
       <div class="divider"></div>
       <div style="font-size:12px">
@@ -843,14 +836,6 @@ function printReceipt(order) {
       <div class="divider"></div>
       <table>
         <tr>
-          <td>Subtotal</td>
-          <td style="text-align:right">AED ${order.subtotal.toFixed(2)}</td>
-        </tr>
-        <tr>
-          <td>VAT (5%)</td>
-          <td style="text-align:right">AED ${order.tax.toFixed(2)}</td>
-        </tr>
-        <tr class="total-row">
           <td>TOTAL</td>
           <td style="text-align:right">AED ${order.total.toFixed(2)}</td>
         </tr>
