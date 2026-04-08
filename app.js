@@ -772,8 +772,8 @@ function printReceipt(order) {
 
   const cafeInfo = {
     name: 'Seenhub Cafe',
-    address: 'Dubai, UAE',
-    phone: '+971 XX XXX XXXX',
+    address: 'Al Ain, UAE',
+    phone: '+971 50 911 9699',
     vatNo: 'TRN 000000000',
   };
 
@@ -858,7 +858,6 @@ function printReceipt(order) {
       <div class="divider"></div>
       <div class="center">
         <div class="thankyou">Thank You! 😊</div>
-        <div class="small">Please come again</div>
         <div class="small" style="margin-top:6px;">Powered by Seenhub Cafe</div>
       </div>
     </body>
