@@ -1,4 +1,4 @@
-const CACHE_NAME = 'seenhub-cafe-v1';
+const CACHE_NAME = 'seenhub-cafe-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS);
@@ -17,6 +18,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
