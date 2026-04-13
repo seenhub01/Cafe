@@ -877,62 +877,41 @@ function printReceipt(order) {
         .small { font-size: 10px; color: #444; }
         table { width: 100%; border-collapse: collapse; margin-top: 6px; }
         .total-row { font-size: 15px; font-weight: bold; }
-        .thankyou { font-size: 14px; font-weight: bold; margin-top: 10px; }
-      </style>
-    </head>
-    <body>
-      <div class="center">
-        <div style="font-size: 24px; margin-bottom: 2px;">☕</div>
-        <div class="cafe-name">${cafeInfo.name}</div>
-        <div class="small">${cafeInfo.address}</div>
-        <div class="small">${cafeInfo.phone}</div>
-      </div>
-      <div class="divider"></div>
-      <div style="font-size:11px">
-        <div><strong>Receipt:</strong> ${order.id}</div>
-        <div><strong>Date:</strong> ${fmtDate(order.timestamp)}</div>
-        <div><strong>Customer:</strong> ${order.customer || 'Guest'}</div>
-        <div><strong>Pay:</strong> ${order.method === 'cash' ? 'Cash' : 'Card'}</div>
-      </div>
-      <div class="divider"></div>
-      <table>
-        <tbody>${itemsHtml}</tbody>
-      </table>
-      <div class="divider"></div>
-      <table class="total-row">
-        <tr>
-          <td>TOTAL</td>
-          <td style="text-align:right">AED ${order.total.toFixed(2)}</td>
-        </tr>
-      </table>
-      <div class="divider"></div>
-      <div class="center">
-        <div class="thankyou">Thank You! 😊</div>
-        <div class="small" style="margin-top:8px;">Powered by Seenhub Cafe</div>
-      </div>
-      <script>
-        window.onload = function() {
-          window.print();
-          // Close is sometimes problematic in iframes/popups on certain browsers
-        };
-      </script>
-    </body>
+function printReceipt(order) {
+  if (!order) return;
+  
+  const frame = document.getElementById('print-frame');
+  if (!frame) return;
+
+  showToast('🔄 Preparing Invoice...', 'info');
+
+  const receiptHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          @page { size: 58mm auto; margin: 0; }
+          body { margin: 0; padding: 0; background: white; }
+          * { -webkit-print-color-adjust: exact; }
+        </style>
+      </head>
+      <body>
+        ${generateReceiptHtml(order)}
+      </body>
     </html>
   `;
 
-  // Always use iframe for mobile PWA stability
-  const frame = document.getElementById('print-frame');
-  if (!frame) {
-    const newFrame = document.createElement('iframe');
-    newFrame.id = 'print-frame';
-    newFrame.style.display = 'none';
-    document.body.appendChild(newFrame);
-    newFrame.srcdoc = receiptHtml;
-  } else {
-    frame.srcdoc = receiptHtml;
-  }
-  
-  showToast('Opening print dialog...', 'success');
+  // Inject content
+  frame.srcdoc = receiptHtml;
+
+  // Trigger print after load
+  frame.onload = () => {
+    setTimeout(() => {
+      showToast('🖨️ Sending to Printer...', 'success');
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+    }, 1200); // 1.2s delay for mobile device rendering
+  };
 }
 
 async function downloadReceipt(order) {
