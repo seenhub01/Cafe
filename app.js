@@ -436,6 +436,14 @@ function processPayment(method) {
   openModal('payment-modal-overlay');
 }
 
+function resetOrder() {
+  state.order = [];
+  document.getElementById('customer-name').value = '';
+  document.getElementById('order-panel').classList.remove('expanded');
+  renderOrderItems();
+  navigateTo('pos');
+}
+
 /* ===================== PRODUCTS PAGE ===================== */
 function renderProductsList() {
   const list = document.getElementById('products-list');
@@ -917,6 +925,93 @@ function printReceipt(order) {
   showToast('Opening print dialog...', 'success');
 }
 
+async function downloadReceipt(order) {
+  if (!order) return;
+  
+  showToast('Generating image...', 'info');
+
+  // We need to render the receipt HTML in a temporary visible-but-off-screen div
+  // because html2canvas has trouble with hidden iframes
+  const tempDiv = document.createElement('div');
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.left = '-9999px';
+  tempDiv.style.top = '0';
+  tempDiv.innerHTML = generateReceiptHtml(order); // helper needed
+  document.body.appendChild(tempDiv);
+
+  try {
+    const canvas = await html2canvas(tempDiv, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff'
+    });
+    
+    const link = document.createElement('a');
+    link.download = `receipt_${order.id}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('Receipt saved to Gallery', 'success');
+  } catch (err) {
+    console.error("Download failed", err);
+    showToast('Failed to save image', 'error');
+  } finally {
+    document.body.removeChild(tempDiv);
+  }
+}
+
+// Helper to generate the raw HTML string (refactored from printReceipt)
+function generateReceiptHtml(order) {
+  const cafeInfo = {
+    name: "Seenhub Cafe",
+    address: "Premium Modern POS System",
+    phone: "+971 XXX XXX XXXX"
+  };
+
+  const itemsHtml = order.items.map(i => `
+    <tr>
+      <td style="padding:4px 0">
+        <div style="font-weight:bold">${i.name}</div>
+        <div style="font-size:10px">x${i.qty} @ AED ${i.price.toFixed(2)}</div>
+      </td>
+      <td style="text-align:right; vertical-align:top; padding:4px 0">AED ${(i.price * i.qty).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <div style="width: 48mm; padding: 10px; background: #fff; font-family: 'Segoe UI', sans-serif; font-size: 11px; line-height: 1.2; color: #000;">
+      <div style="text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 2px;">☕</div>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 2px;">${cafeInfo.name}</div>
+        <div style="font-size: 10px; color: #444;">${cafeInfo.address}</div>
+        <div style="font-size: 10px; color: #444;">${cafeInfo.phone}</div>
+      </div>
+      <div style="border-top: 1px dashed #000; margin: 6px 0;"></div>
+      <div style="font-size:11px">
+        <div><strong>Receipt:</strong> ${order.id}</div>
+        <div><strong>Date:</strong> ${fmtDate(order.timestamp)}</div>
+        <div><strong>Customer:</strong> ${order.customer || 'Guest'}</div>
+        <div><strong>Pay:</strong> ${order.method === 'cash' ? 'Cash' : 'Card'}</div>
+      </div>
+      <div style="border-top: 1px dashed #000; margin: 6px 0;"></div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tbody>${itemsHtml}</tbody>
+      </table>
+      <div style="border-top: 1px dashed #000; margin: 6px 0;"></div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 15px; font-weight: bold;">
+        <tr>
+          <td>TOTAL</td>
+          <td style="text-align:right">AED ${order.total.toFixed(2)}</td>
+        </tr>
+      </table>
+      <div style="border-top: 1px dashed #000; margin: 6px 0;"></div>
+      <div style="text-align: center;">
+        <div style="font-size: 14px; font-weight: bold; margin-top: 10px;">Thank You! 😊</div>
+        <div style="font-size: 10px; color: #444; margin-top:8px;">Powered by Seenhub Cafe</div>
+      </div>
+    </div>
+  `;
+}
+
 /* ===================== MODAL HELPERS ===================== */
 function openModal(id) {
   document.getElementById(id).classList.add('active');
@@ -1052,13 +1147,13 @@ function bindEvents() {
   // Payment modal
   document.getElementById('payment-modal-close').addEventListener('click', () => {
     closeModal('payment-modal-overlay');
-    // Collapse order panel on mobile to "go back" to dashboard
-    document.getElementById('order-panel').classList.remove('expanded');
-    navigateTo('pos');
+    resetOrder();
   });
   document.getElementById('payment-modal-print').addEventListener('click', () => {
-    closeModal('payment-modal-overlay');
-    if (state.lastOrder) printReceipt(state.lastOrder);
+    printReceipt(state.lastOrder);
+  });
+  document.getElementById('payment-modal-download').addEventListener('click', () => {
+    downloadReceipt(state.lastOrder);
   });
 
   // Orders filter

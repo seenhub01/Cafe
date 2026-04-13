@@ -22,6 +22,9 @@
 
   <!-- OCR Library for AI Menu Scan -->
   <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+  
+  <!-- Image Generation for Receipt Download -->
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
 <body>
   <div id="app">
@@ -259,7 +262,8 @@
         <p id="payment-modal-method"></p>
         <div class="modal-footer">
           <button class="modal-btn cancel" id="payment-modal-close">Finish & Back</button>
-          <button class="modal-btn save" id="payment-modal-print">🖨️ Print Receipt</button>
+          <button class="modal-btn save" id="payment-modal-download" style="background: var(--accent); white-space: nowrap;">📥 Save Image</button>
+          <button class="modal-btn save" id="payment-modal-print">🖨️ Print</button>
         </div>
       </div>
     </div>
