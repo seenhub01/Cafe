@@ -19,6 +19,9 @@
   
   <!-- QR/Barcode Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <!-- OCR Library for AI Menu Scan -->
+  <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
 </head>
 <body>
   <div id="app">
@@ -120,7 +123,12 @@
       <div class="page" id="page-products">
         <header class="page-header">
           <h1>Products</h1>
-          <button class="add-btn" id="btn-add-product">+ Add</button>
+          <div style="display: flex; gap: 10px;">
+            <button class="add-btn" id="btn-ai-scan" style="background: var(--primary-gradient); display: flex; align-items: center; gap: 8px;">
+              ✨ AI Scan
+            </button>
+            <button class="add-btn" id="btn-add-product">+ Add</button>
+          </div>
         </header>
 
         <div class="products-list" id="products-list">
@@ -260,6 +268,33 @@
         </div>
       </div>
     </div>
+
+    <!-- AI Vision Review Modal -->
+    <div class="modal-overlay" id="ai-review-modal-overlay">
+      <div class="modal" id="ai-review-modal">
+        <div class="modal-header">
+          <h2>Review Detected Items</h2>
+          <button class="modal-close" id="ai-review-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="data-mgmt-info" style="margin-bottom: 15px;">We've detected these items. Please check and edit if needed.</p>
+          <div id="ai-items-list" class="orders-list">
+            <!-- Detected items with edit inputs -->
+          </div>
+          <div id="ai-loading" class="hidden" style="text-align:center; padding: 40px;">
+            <div class="splash-loader" style="margin: 0 auto 15px;"><div></div></div>
+            <p>Processing Vision Data...</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn cancel" id="ai-review-cancel">Cancel</button>
+          <button class="modal-btn save" id="ai-import-btn">Import Approved Items</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden file input for AI Scan -->
+    <input type="file" id="ai-camera-input" accept="image/*" capture="environment" hidden />
 
     <!-- Receipt Print Frame (hidden) -->
     <iframe id="print-frame" style="display:none;"></iframe>

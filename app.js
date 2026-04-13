@@ -30,6 +30,7 @@ let state = {
   lastOrder: null,
   imageDataCache: {},  // productId -> base64 data URL
   html5QrCode: null,   // Scanner instance
+  detectedItems: [],   // Items from AI Scan
 };
 
 /* ---------- PERSISTENCE (CLOUD + INDEXEDDB) ---------- */
@@ -1083,6 +1084,17 @@ function bindEvents() {
   // POS Scanner Events
   document.getElementById('btn-header-scan').addEventListener('click', startPosScanner);
   document.getElementById('pos-scanner-close').addEventListener('click', stopPosScanner);
+
+  // AI Vision Events
+  document.getElementById('btn-ai-scan').addEventListener('click', () => {
+    document.getElementById('ai-camera-input').click();
+  });
+  document.getElementById('ai-camera-input').addEventListener('change', (e) => {
+    handleAiScan(e.target.files[0]);
+  });
+  document.getElementById('ai-review-close').addEventListener('click', () => closeModal('ai-review-modal-overlay'));
+  document.getElementById('ai-review-cancel').addEventListener('click', () => closeModal('ai-review-modal-overlay'));
+  document.getElementById('ai-import-btn').addEventListener('click', importAiItems);
 }
 
 /* ===================== SCANNER LOGIC ===================== */
@@ -1167,6 +1179,121 @@ function stopScanner() {
   if (state.html5QrCode && state.html5QrCode.isScanning) {
     state.html5QrCode.stop().catch(err => console.warn("Stop failed", err));
   }
+}
+
+/* ===================== AI VISION LOGIC ===================== */
+async function handleAiScan(file) {
+  if (!file) return;
+  
+  openModal('ai-review-modal-overlay');
+  document.getElementById('ai-loading').classList.remove('hidden');
+  document.getElementById('ai-items-list').innerHTML = '';
+  state.detectedItems = [];
+
+  try {
+    const worker = await Tesseract.createWorker('eng');
+    const { data: { text } } = await worker.recognize(file);
+    await worker.terminate();
+
+    parseAiText(text);
+    renderDetectedItems();
+  } catch (err) {
+    console.error("AI Scan failed", err);
+    showToast('AI analysis failed', 'error');
+    // Don't close modal, show empty state
+  } finally {
+    document.getElementById('ai-loading').classList.add('hidden');
+  }
+}
+
+function parseAiText(text) {
+  const lines = text.split('\n');
+  const items = [];
+
+  lines.forEach(line => {
+    line = line.trim();
+    if (!line || line.length < 3) return;
+
+    // Pattern: 1x Name Name 12.50
+    // Try to find a numeric price at the end of the line
+    const parts = line.split(/\s+/);
+    if (parts.length < 2) return;
+
+    let price = 0;
+    let name = '';
+    
+    for (let i = parts.length - 1; i >= 0; i--) {
+      // Look for something with digits and optional period
+      const part = parts[i].replace(/[^\d.]/g, '');
+      if (part && !isNaN(part) && part.length > 0) {
+        price = parseFloat(part);
+        name = parts.slice(0, i).join(' ');
+        name = name.replace(/^\d+x\s+/i, '').trim(); // Remove "1x " prefix
+        break;
+      }
+    }
+
+    if (name && price > 0 && name.length > 1) {
+      items.push({ id: genId(), name, price });
+    }
+  });
+
+  state.detectedItems = items;
+}
+
+function renderDetectedItems() {
+  const list = document.getElementById('ai-items-list');
+  if (state.detectedItems.length === 0) {
+    list.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted)">No items detected. Try a clearer photo.</p>';
+    return;
+  }
+
+  list.innerHTML = state.detectedItems.map((item, idx) => `
+    <div class="product-list-item" style="padding: 10px; gap: 10px; margin-bottom: 8px;">
+      <input type="text" value="${item.name}" class="form-input" style="flex:2; padding:8px;" onchange="updateDetectedItem(${idx}, 'name', this.value)">
+      <div style="display:flex; align-items:center; gap:4px; flex:1">
+        <span style="font-size:12px; font-weight:bold">AED</span>
+        <input type="number" value="${item.price}" class="form-input" style="padding:8px; width:100%" onchange="updateDetectedItem(${idx}, 'price', this.value)">
+      </div>
+      <button class="delete-btn" style="width:auto; padding:8px;" onclick="removeDetectedItem(${idx})">✕</button>
+    </div>
+  `).join('');
+}
+
+window.updateDetectedItem = (idx, field, val) => {
+  if (field === 'price') state.detectedItems[idx].price = parseFloat(val) || 0;
+  else state.detectedItems[idx][field] = val;
+};
+
+window.removeDetectedItem = (idx) => {
+  state.detectedItems.splice(idx, 1);
+  renderDetectedItems();
+};
+
+async function importAiItems() {
+  if (state.detectedItems.length === 0) return;
+  
+  let count = 0;
+  state.detectedItems.forEach(item => {
+    const exists = state.products.find(p => p.name.toLowerCase() === item.name.toLowerCase());
+    if (!exists) {
+      state.products.push({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        category: 'Imported',
+        emoji: '✨'
+      });
+      count++;
+    }
+  });
+
+  await saveState();
+  closeModal('ai-review-modal-overlay');
+  renderProductsList();
+  renderProductGrid();
+  renderCategories();
+  showToast(`${count} new items imported!`, 'success');
 }
 
 async function exportDatabase() {
