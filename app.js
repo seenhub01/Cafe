@@ -332,13 +332,6 @@ function addToOrder(product) {
     state.order.push({ productId: product.id, name: product.name, price: product.price, qty: 1 });
   }
   renderOrderItems();
-  
-  // Auto-expand on mobile
-  const panel = document.getElementById('order-panel');
-  if (window.innerWidth <= 600) {
-    panel.classList.add('expanded');
-  }
-  
   showToast(`${product.name} added`, 'success');
 }
 
@@ -364,6 +357,11 @@ function renderOrderItems() {
     container.innerHTML = `<div class="empty-order"><span>🛒</span><p>No items yet</p></div>`;
     subtotalEl.textContent = 'AED 0.00';
     totalEl.textContent = 'AED 0.00';
+    
+    // Hide FAB
+    const fab = document.getElementById('mobile-checkout-fab');
+    if (fab) fab.classList.add('hidden');
+    document.getElementById('order-panel').classList.remove('expanded');
     return;
   }
 
@@ -393,8 +391,17 @@ function renderOrderItems() {
   });
 
   const total = subtotal;
-  subtotalEl.textContent = fmt(subtotal);
-  totalEl.textContent = fmt(total);
+  subtotalEl.textContent = `AED ${subtotal.toFixed(2)}`;
+  totalEl.textContent = `AED ${total.toFixed(2)}`;
+
+  // Update FAB for mobile
+  const fab = document.getElementById('mobile-checkout-fab');
+  const count = state.order.reduce((sum, i) => sum + i.qty, 0);
+  if (fab) {
+    fab.classList.remove('hidden');
+    document.getElementById('mobile-cart-count').innerText = count;
+    document.getElementById('mobile-cart-total').innerText = `AED ${total.toFixed(2)}`;
+  }
 }
 
 function clearOrder() {
