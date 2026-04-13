@@ -610,16 +610,19 @@ function renderOrdersList() {
         <span class="order-card-badge badge-${order.method}">${order.method === 'cash' ? '💵 Cash' : '💳 Card'}</span>
       </div>
       <div class="order-card-items">${itemLines}</div>
-      <div class="order-card-footer">
-        <div>
-          <div class="order-card-total">${fmt(order.total)}</div>
+        <div style="display: flex; gap: 8px;">
+          <button class="order-download-btn" data-order-id="${order.id}">📥 Save</button>
+          <button class="order-print-btn" data-order-id="${order.id}">🖨️ Print</button>
         </div>
-        <button class="order-print-btn" data-order-id="${order.id}">🖨️ Print</button>
       </div>
     `;
     card.querySelector('.order-print-btn').addEventListener('click', () => {
       const ord = state.orders.find(o => o.id === order.id);
       if (ord) printReceipt(ord);
+    });
+    card.querySelector('.order-download-btn').addEventListener('click', () => {
+      const ord = state.orders.find(o => o.id === order.id);
+      if (ord) downloadReceipt(ord);
     });
     list.appendChild(card);
   });
