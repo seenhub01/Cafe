@@ -56,6 +56,8 @@ html, body {
   color: var(--text-main);
   font-size: 15px;
   letter-spacing: -0.2px;
+  /* Prevent browser pull-to-refresh and bounce */
+  overscroll-behavior: none;
 }
 
 /* ===================== LAYOUT ===================== */
@@ -276,13 +278,23 @@ html, body {
 /* PRODUCT GRID */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
   padding: 4px 20px 20px;
   flex: 1;
   overflow-y: auto;
   align-content: start;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  min-height: 0; /* Essential for flex scroll */
+}
+
+@media (min-width: 1200px) {
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+  }
 }
 .product-grid::-webkit-scrollbar { display: none; }
 
@@ -384,7 +396,7 @@ html, body {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 900px) {
   .order-panel {
     position: fixed;
     bottom: 0;
@@ -396,9 +408,30 @@ html, body {
   .order-panel.expanded {
     transform: translateY(0);
   }
-  /* When expanded, add a darker overlay or just blur bg */
   #page-pos {
     padding-bottom: 135px; /* space for the collapsed panel */
+  }
+}
+
+@media (min-width: 901px) {
+  #page-pos.active {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    height: 100%;
+    overflow: hidden;
+  }
+  .order-panel {
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    border-left: 1px solid var(--border);
+    padding-bottom: var(--nav-height);
+    transform: none !important;
+  }
+  .order-panel::before { display: none; }
+  .order-items {
+    max-height: none;
+    flex: 1;
   }
 }
 
@@ -438,10 +471,13 @@ html, body {
 }
 
 .order-items {
-  max-height: 25vh; /* Enough to see a few items but not overtake screen */
+  max-height: 35vh; /* Increased slightly for better view */
   overflow-y: auto;
   padding: 8px 12px;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  min-height: 0;
 }
 .empty-order {
   display: flex;
@@ -587,6 +623,9 @@ html, body {
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  min-height: 0;
 }
 .product-list-item {
   background: var(--surface);
@@ -652,6 +691,9 @@ html, body {
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  min-height: 0;
 }
 .order-card {
   background: var(--surface);
@@ -709,8 +751,34 @@ html, body {
 }
 .report-tab.active { background: var(--text-main); color: white; }
 
+.data-management-section {
+  margin: 20px;
+  padding: 20px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px dashed var(--border);
+}
+.data-mgmt-btns {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+.data-mgmt-info {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: center;
+}
+
 #report-content {
-  padding: 0 20px 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;
+  padding: 0 20px 20px; display: flex; flex-direction: column; gap: 20px; 
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  flex: 1; /* Allow it to grow and scroll */
+  min-height: 0;
 }
 
 .report-summary-cards {

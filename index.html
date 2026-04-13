@@ -159,6 +159,16 @@
         <div id="report-content">
           <!-- Report content injected here -->
         </div>
+
+        <div class="data-management-section">
+          <div class="report-section-title">Database Management</div>
+          <div class="data-mgmt-btns">
+            <button class="modal-btn save" id="btn-export-db">📥 Backup Data</button>
+            <button class="modal-btn cancel" id="btn-import-db">📤 Restore Data</button>
+            <input type="file" id="import-db-input" accept=".json" hidden />
+          </div>
+          <p class="data-mgmt-info">Data is automatically saved to your device's local database.</p>
+        </div>
       </div>
     </main>
 

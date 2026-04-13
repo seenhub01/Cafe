@@ -350,7 +350,6 @@ function updateQty(productId, delta) {
 function renderOrderItems() {
   const container = document.getElementById('order-items');
   const subtotalEl = document.getElementById('subtotal-val');
-  const taxEl = document.getElementById('tax-val');
   const totalEl = document.getElementById('total-val');
 
   if (state.order.length === 0) {
@@ -589,7 +588,6 @@ function renderOrdersList() {
       <div class="order-card-footer">
         <div>
           <div class="order-card-total">${fmt(order.total)}</div>
-          <div style="font-size:11px;color:var(--text-muted)">incl. ${fmt(order.tax)} tax</div>
         </div>
         <button class="order-print-btn" data-order-id="${order.id}">🖨️ Print</button>
       </div>
@@ -817,9 +815,11 @@ function printReceipt(order) {
 
   const itemsHtml = order.items.map(i => `
     <tr>
-      <td style="padding:3px 0">${i.name}</td>
-      <td style="text-align:center;padding:3px 0">x${i.qty}</td>
-      <td style="text-align:right;padding:3px 0">AED ${(i.price * i.qty).toFixed(2)}</td>
+      <td style="padding:4px 0; border-bottom: 0.5px solid #eee;">
+        <div style="font-weight:bold">${i.name}</div>
+        <div style="font-size:11px">x${i.qty} @ AED ${i.price.toFixed(2)}</div>
+      </td>
+      <td style="text-align:right; vertical-align:top; padding:4px 0">AED ${(i.price * i.qty).toFixed(2)}</td>
     </tr>
   `).join('');
 
@@ -828,39 +828,39 @@ function printReceipt(order) {
     <html>
     <head>
       <meta charset="UTF-8"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Receipt ${order.id}</title>
       <style>
         @page { size: 80mm auto; margin: 0; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-          font-family: 'Courier New', monospace;
-          font-size: 13px;
+          font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          font-size: 14px;
+          line-height: 1.4;
           color: #000;
-          width: 80mm;
-          padding: 8px 10px;
+          width: 72mm; /* slightly less than 80mm to avoid clipping */
+          margin: 0 auto;
+          padding: 10px;
           background: #fff;
         }
         .center { text-align: center; }
-        .bold { font-weight: bold; }
-        .divider { border-top: 1px dashed #000; margin: 6px 0; }
-        .logo { font-size: 22px; margin-bottom: 4px; }
-        .cafe-name { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
-        .small { font-size: 11px; color: #444; }
-        table { width: 100%; border-collapse: collapse; }
-        th { font-size: 11px; font-weight: bold; padding-bottom: 4px; }
-        .total-row td { font-weight: bold; font-size: 15px; padding-top: 4px; }
-        .thankyou { font-size: 15px; font-weight: bold; margin-top: 6px; }
+        .divider { border-top: 1px dashed #000; margin: 10px 0; }
+        .cafe-name { font-size: 20px; font-weight: bold; margin-bottom: 2px; }
+        .small { font-size: 12px; color: #444; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .total-row { font-size: 18px; font-weight: bold; }
+        .thankyou { font-size: 16px; font-weight: bold; margin-top: 15px; }
       </style>
     </head>
     <body>
       <div class="center">
-        <div class="logo">☕</div>
+        <div style="font-size: 32px; margin-bottom: 5px;">☕</div>
         <div class="cafe-name">${cafeInfo.name}</div>
         <div class="small">${cafeInfo.address}</div>
         <div class="small">${cafeInfo.phone}</div>
       </div>
       <div class="divider"></div>
-      <div style="font-size:12px">
+      <div style="font-size:13px">
         <div><strong>Receipt:</strong> ${order.id}</div>
         <div><strong>Date:</strong> ${fmtDate(order.timestamp)}</div>
         <div><strong>Customer:</strong> ${order.customer || 'Guest'}</div>
@@ -868,17 +868,10 @@ function printReceipt(order) {
       </div>
       <div class="divider"></div>
       <table>
-        <thead>
-          <tr>
-            <th style="text-align:left">Item</th>
-            <th style="text-align:center">Qty</th>
-            <th style="text-align:right">Amount</th>
-          </tr>
-        </thead>
         <tbody>${itemsHtml}</tbody>
       </table>
       <div class="divider"></div>
-      <table>
+      <table class="total-row">
         <tr>
           <td>TOTAL</td>
           <td style="text-align:right">AED ${order.total.toFixed(2)}</td>
@@ -887,31 +880,31 @@ function printReceipt(order) {
       <div class="divider"></div>
       <div class="center">
         <div class="thankyou">Thank You! 😊</div>
-        <div class="small" style="margin-top:6px;">Powered by Seenhub Cafe</div>
+        <div class="small" style="margin-top:8px;">Powered by Seenhub Cafe</div>
       </div>
+      <script>
+        window.onload = function() {
+          window.print();
+          // Close is sometimes problematic in iframes/popups on certain browsers
+        };
+      </script>
     </body>
     </html>
   `;
 
-  const printWin = window.open('', '_blank', 'width=320,height=600,toolbar=0,menubar=0,location=0');
-  if (printWin) {
-    printWin.document.write(receiptHtml);
-    printWin.document.close();
-    printWin.focus();
-    setTimeout(() => {
-      printWin.print();
-      printWin.close();
-    }, 500);
+  // Always use iframe for mobile PWA stability
+  const frame = document.getElementById('print-frame');
+  if (!frame) {
+    const newFrame = document.createElement('iframe');
+    newFrame.id = 'print-frame';
+    newFrame.style.display = 'none';
+    document.body.appendChild(newFrame);
+    newFrame.srcdoc = receiptHtml;
   } else {
-    // Fallback: use iframe
-    const frame = document.getElementById('print-frame');
     frame.srcdoc = receiptHtml;
-    frame.onload = () => {
-      frame.contentWindow.focus();
-      frame.contentWindow.print();
-    };
-    showToast('Opening print dialog...', 'success');
   }
+  
+  showToast('Opening print dialog...', 'success');
 }
 
 /* ===================== MODAL HELPERS ===================== */
@@ -1070,6 +1063,63 @@ function bindEvents() {
       renderReports();
     });
   });
+
+  // Database Management
+  document.getElementById('btn-export-db').addEventListener('click', exportDatabase);
+  document.getElementById('btn-import-db').addEventListener('click', () => {
+    document.getElementById('import-db-input').click();
+  });
+  document.getElementById('import-db-input').addEventListener('change', (e) => {
+    importDatabase(e.target.files[0]);
+  });
+}
+
+async function exportDatabase() {
+  const data = {
+    version: '1.0',
+    timestamp: Date.now(),
+    products: state.products,
+    orders: state.orders,
+    images: state.imageDataCache
+  };
+  
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `seenhub_cafe_backup_${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Database exported successfully', 'success');
+}
+
+async function importDatabase(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.products || !data.orders) throw new Error('Invalid backup file');
+      
+      if (confirm('This will replace your current data. Continue?')) {
+        state.products = data.products;
+        state.orders = data.orders;
+        state.imageDataCache = data.images || {};
+        
+        // Save images to IndexedDB
+        for (let id in state.imageDataCache) {
+          await saveImage(id, state.imageDataCache[id]);
+        }
+        
+        await saveState();
+        showToast('Database restored successfully', 'success');
+        location.reload(); // Refresh to apply all data
+      }
+    } catch (err) {
+      showToast('Failed to import database: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
 }
 
 /* ===================== INIT ===================== */
