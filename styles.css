@@ -402,15 +402,18 @@ html, body {
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 100;
-    transform: translateY(calc(100% - 135px)); /* Show only header/handle by default */
+    z-index: 1000;
+    transform: translateY(100%); /* Completely hidden by default */
+    border-radius: 32px 32px 0 0;
+    height: 90vh;
   }
   .order-panel.expanded {
     transform: translateY(0);
   }
   #page-pos {
-    padding-bottom: 135px; /* space for the collapsed panel */
+    padding-bottom: 20px; /* No more blocked space */
   }
+  .order-panel::before { display: block; }
 }
 
 @media (min-width: 901px) {
@@ -960,4 +963,46 @@ html, body {
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===================== FAB ===================== */
+.fab {
+  position: fixed;
+  bottom: calc(var(--nav-height) + 24px + env(safe-area-inset-bottom, 0px));
+  left: 20px;
+  right: 20px;
+  height: 64px;
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.4);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.fab:active { transform: scale(0.95); opacity: 0.9; }
+.fab.hidden { transform: translateY(150%); opacity: 0; visibility: hidden; }
+
+.fab-content {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+.fab-count {
+  background: rgba(255,255,255,0.2);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 800;
+}
+.fab-label { font-size: 16px; font-weight: 800; }
+.fab-total { font-size: 16px; font-weight: 800; }
+
+@media (min-width: 901px) {
+  .fab { display: none; }
 }

@@ -1101,6 +1101,21 @@ function bindEvents() {
   document.getElementById('ai-review-close').addEventListener('click', () => closeModal('ai-review-modal-overlay'));
   document.getElementById('ai-review-cancel').addEventListener('click', () => closeModal('ai-review-modal-overlay'));
   document.getElementById('ai-import-btn').addEventListener('click', importAiItems);
+
+  // Mobile FAB
+  const fab = document.getElementById('mobile-checkout-fab');
+  if (fab) {
+    fab.addEventListener('click', () => {
+      document.getElementById('order-panel').classList.toggle('expanded');
+    });
+  }
+
+  // Also toggle via header
+  document.querySelector('.order-panel-header').addEventListener('click', () => {
+    if (window.innerWidth <= 900) {
+      document.getElementById('order-panel').classList.toggle('expanded');
+    }
+  });
 }
 
 /* ===================== SCANNER LOGIC ===================== */
