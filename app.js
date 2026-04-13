@@ -40,6 +40,10 @@ dbRequest.onupgradeneeded = (e) => {
   e.target.result.createObjectStore('images');
 };
 
+dbRequest.onsuccess = (e) => {
+  console.log('IndexedDB Ready');
+};
+
 async function saveImage(id, dataUrl) {
   return new Promise((resolve) => {
     const tx = dbRequest.result.transaction('images', 'readwrite');
@@ -85,9 +89,11 @@ async function loadState() {
     
     // Load images for all products from IndexedDB
     for (let p of state.products) {
-      state.imageDataCache[p.id] = await loadImage(p.id);
+      if (dbRequest.readyState === 'done') {
+        state.imageDataCache[p.id] = await loadImage(p.id);
+      }
     }
-  } catch (e) { console.error('Load failed'); }
+  } catch (e) { console.error('Load state partially failed', e); }
 
   if (state.products.length === 0 || savedVersion !== CURRENT_VERSION) {
     loadSampleProducts();
@@ -1363,4 +1369,10 @@ function init() {
   }, 1800);
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  dbRequest.onsuccess = () => {
+    init();
+  };
+  // Fallback if already ready
+  if (dbRequest.readyState === 'done') init();
+});
