@@ -29,6 +29,7 @@ let state = {
   editingProductId: null,
   lastOrder: null,
   imageDataCache: {},  // productId -> base64 data URL
+  html5QrCode: null,   // Scanner instance
 };
 
 /* ---------- PERSISTENCE (CLOUD + INDEXEDDB) ---------- */
@@ -483,6 +484,7 @@ function openEditProduct(id) {
   document.getElementById('product-name-input').value = product.name;
   document.getElementById('product-category-input').value = product.category || '';
   document.getElementById('product-price-input').value = product.price;
+  document.getElementById('product-barcode-input').value = product.barcode || '';
   document.getElementById('editing-product-id').value = id;
 
   const img = document.getElementById('product-preview-img');
@@ -502,6 +504,7 @@ function saveProduct() {
   const name = document.getElementById('product-name-input').value.trim();
   const category = document.getElementById('product-category-input').value.trim();
   const price = parseFloat(document.getElementById('product-price-input').value);
+  const barcode = document.getElementById('product-barcode-input').value.trim();
   const editingId = document.getElementById('editing-product-id').value;
 
   if (!name) { showToast('Product name is required', 'error'); return; }
@@ -510,11 +513,11 @@ function saveProduct() {
   if (editingId) {
     const idx = state.products.findIndex(p => p.id === editingId);
     if (idx !== -1) {
-      state.products[idx] = { ...state.products[idx], name, category, price };
+      state.products[idx] = { ...state.products[idx], name, category, price, barcode };
       showToast('Product updated!', 'success');
     }
   } else {
-    const newProduct = { id: genId(), name, category, price, emoji: getCategoryEmoji(category) };
+    const newProduct = { id: genId(), name, category, price, barcode, emoji: getCategoryEmoji(category) };
     state.products.push(newProduct);
     showToast('Product added!', 'success');
   }
@@ -1072,6 +1075,98 @@ function bindEvents() {
   document.getElementById('import-db-input').addEventListener('change', (e) => {
     importDatabase(e.target.files[0]);
   });
+
+  // Scanner Events
+  document.getElementById('btn-start-scanner').addEventListener('click', startScanner);
+  document.getElementById('btn-stop-scanner').addEventListener('click', stopScanner);
+
+  // POS Scanner Events
+  document.getElementById('btn-header-scan').addEventListener('click', startPosScanner);
+  document.getElementById('pos-scanner-close').addEventListener('click', stopPosScanner);
+}
+
+/* ===================== SCANNER LOGIC ===================== */
+let posScannerInstance = null;
+async function startPosScanner() {
+  openModal('pos-scanner-overlay');
+  
+  if (!posScannerInstance) {
+    posScannerInstance = new Html5Qrcode("pos-qr-reader");
+  }
+
+  const onScanSuccess = (decodedText) => {
+    const product = state.products.find(p => p.barcode === decodedText);
+    if (product) {
+      addToOrder(product);
+      showToast(`${product.name} added to cart!`, 'success');
+      // We keep scanning for multi-item checkouts
+    } else {
+      showToast(`Unknown barcode: ${decodedText}`, 'error');
+    }
+  };
+
+  const config = { fps: 15, qrbox: { width: 250, height: 150 } };
+  try {
+    await posScannerInstance.start({ facingMode: "environment" }, config, onScanSuccess);
+  } catch (err) {
+    showToast('Camera failed', 'error');
+    closeModal('pos-scanner-overlay');
+  }
+}
+
+function stopPosScanner() {
+  closeModal('pos-scanner-overlay');
+  if (posScannerInstance && posScannerInstance.isScanning) {
+    posScannerInstance.stop();
+  }
+}
+
+async function startScanner() {
+  const scannerWrap = document.getElementById('product-scanner-wrap');
+  const triggerWrap = document.getElementById('scan-trigger-wrap');
+  
+  scannerWrap.classList.remove('hidden');
+  triggerWrap.classList.add('hidden');
+
+  if (!state.html5QrCode) {
+    state.html5QrCode = new Html5Qrcode("product-qr-reader");
+  }
+
+  const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+    stopScanner();
+    document.getElementById('product-barcode-input').value = decodedText;
+    showToast('Barcode scanned!', 'success');
+    
+    // Auto-fill logic if product exists
+    const existing = state.products.find(p => p.barcode === decodedText);
+    if (existing) {
+      document.getElementById('product-name-input').value = existing.name;
+      document.getElementById('product-price-input').value = existing.price;
+      document.getElementById('product-category-input').value = existing.category || '';
+    }
+  };
+
+  const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+  try {
+    await state.html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
+  } catch (err) {
+    console.error("Scanner failed", err);
+    showToast('Camera access denied', 'error');
+    stopScanner();
+  }
+}
+
+function stopScanner() {
+  const scannerWrap = document.getElementById('product-scanner-wrap');
+  const triggerWrap = document.getElementById('scan-trigger-wrap');
+  
+  scannerWrap.classList.add('hidden');
+  triggerWrap.classList.remove('hidden');
+
+  if (state.html5QrCode && state.html5QrCode.isScanning) {
+    state.html5QrCode.stop().catch(err => console.warn("Stop failed", err));
+  }
 }
 
 async function exportDatabase() {
