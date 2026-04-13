@@ -994,10 +994,11 @@ function generateReceiptHtml(order) {
         <div style="font-size: 16px; font-weight: bold; margin-bottom: 2px;">${cafeInfo.name}</div>
         <div style="font-size: 10px; color: #444;">${cafeInfo.address}</div>
         <div style="font-size: 10px; color: #444;">${cafeInfo.phone}</div>
+        <div style="font-size: 12px; font-weight: 800; margin-top: 5px; text-transform: uppercase;">INVOICE</div>
       </div>
       <div style="border-top: 1px dashed #000; margin: 6px 0;"></div>
       <div style="font-size:11px">
-        <div><strong>Receipt:</strong> ${order.id}</div>
+        <div><strong>No:</strong> ${order.id}</div>
         <div><strong>Date:</strong> ${fmtDate(order.timestamp)}</div>
         <div><strong>Customer:</strong> ${order.customer || 'Guest'}</div>
         <div><strong>Pay:</strong> ${order.method === 'cash' ? 'Cash' : 'Card'}</div>
