@@ -831,40 +831,40 @@ function printReceipt(order) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Receipt ${order.id}</title>
       <style>
-        @page { size: 80mm auto; margin: 0; }
+        @page { size: 58mm auto; margin: 0; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
           font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-          font-size: 14px;
-          line-height: 1.4;
+          font-size: 11px;
+          line-height: 1.2;
           color: #000;
-          width: 72mm; /* slightly less than 80mm to avoid clipping */
+          width: 48mm; /* Standard printable width for 58mm paper */
           margin: 0 auto;
-          padding: 10px;
+          padding: 8px 4px;
           background: #fff;
         }
         .center { text-align: center; }
-        .divider { border-top: 1px dashed #000; margin: 10px 0; }
-        .cafe-name { font-size: 20px; font-weight: bold; margin-bottom: 2px; }
-        .small { font-size: 12px; color: #444; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .total-row { font-size: 18px; font-weight: bold; }
-        .thankyou { font-size: 16px; font-weight: bold; margin-top: 15px; }
+        .divider { border-top: 1px dashed #000; margin: 6px 0; }
+        .cafe-name { font-size: 16px; font-weight: bold; margin-bottom: 2px; }
+        .small { font-size: 10px; color: #444; }
+        table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+        .total-row { font-size: 15px; font-weight: bold; }
+        .thankyou { font-size: 14px; font-weight: bold; margin-top: 10px; }
       </style>
     </head>
     <body>
       <div class="center">
-        <div style="font-size: 32px; margin-bottom: 5px;">☕</div>
+        <div style="font-size: 24px; margin-bottom: 2px;">☕</div>
         <div class="cafe-name">${cafeInfo.name}</div>
         <div class="small">${cafeInfo.address}</div>
         <div class="small">${cafeInfo.phone}</div>
       </div>
       <div class="divider"></div>
-      <div style="font-size:13px">
+      <div style="font-size:11px">
         <div><strong>Receipt:</strong> ${order.id}</div>
         <div><strong>Date:</strong> ${fmtDate(order.timestamp)}</div>
         <div><strong>Customer:</strong> ${order.customer || 'Guest'}</div>
-        <div><strong>Payment:</strong> ${order.method === 'cash' ? 'Cash' : 'Card'}</div>
+        <div><strong>Pay:</strong> ${order.method === 'cash' ? 'Cash' : 'Card'}</div>
       </div>
       <div class="divider"></div>
       <table>
