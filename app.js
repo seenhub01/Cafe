@@ -31,7 +31,141 @@ let state = {
   imageDataCache: {},  // productId -> base64 data URL
   html5QrCode: null,   // Scanner instance
   detectedItems: [],   // Items from AI Scan
+  printer: null,       // Bluetooth printer instance
 };
+
+/* ---------- BLUETOOTH THERMAL PRINTER DRIVER (58mm) ---------- */
+class BluetoothPrinter {
+  constructor() {
+    this.device = null;
+    this.characteristic = null;
+    this.statusEl = document.getElementById('printer-status');
+  }
+
+  async connect() {
+    if (!navigator.bluetooth) {
+      showToast("Bluetooth not supported on this browser/device", "error");
+      return;
+    }
+
+    try {
+      showToast("Searching for printers...", "info");
+      this.device = await navigator.bluetooth.requestDevice({
+        filters: [
+          { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, // Generic printer service
+          { namePrefix: 'MPT' }, { namePrefix: 'SPP' }, { namePrefix: 'Blue' }, { namePrefix: 'Printer' }
+        ],
+        optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455']
+      });
+
+      const server = await this.device.gatt.connect();
+      
+      // Look for any writable characteristic
+      const services = await server.getPrimaryServices();
+      for (const service of services) {
+        const characteristics = await service.getCharacteristics();
+        for (const char of characteristics) {
+          if (char.properties.write || char.properties.writeWithoutResponse) {
+            this.characteristic = char;
+            break;
+          }
+        }
+        if (this.characteristic) break;
+      }
+
+      if (this.characteristic) {
+        this.statusEl.classList.add('connected');
+        showToast("Printer Connected!", "success");
+        this.device.addEventListener('gattserverdisconnected', () => this.onDisconnect());
+      } else {
+        throw new Error("No writable characteristic found");
+      }
+    } catch (err) {
+      console.error("Connection failed", err);
+      this.statusEl.classList.add('error');
+      showToast("Printer Connection Failed", "error");
+    }
+  }
+
+  onDisconnect() {
+    this.device = null;
+    this.characteristic = null;
+    this.statusEl.classList.remove('connected');
+    showToast("Printer Disconnected", "info");
+  }
+
+  async printRaw(data) {
+    if (!this.characteristic) {
+      showToast("Printer not connected", "error");
+      return;
+    }
+    
+    // Split into chunks of 20 bytes (BLE limit)
+    const chunkSize = 20;
+    for (let i = 0; i < data.length; i += chunkSize) {
+      const chunk = data.slice(i, i + chunkSize);
+      await this.characteristic.writeValue(chunk);
+    }
+  }
+
+  // ESC/POS Command Generation (58mm = 32 chars)
+  async printReceipt(order) {
+    const encoder = new TextEncoder();
+    const esc = {
+      INIT: [0x1B, 0x40],
+      CENTER: [0x1B, 0x61, 0x01],
+      LEFT: [0x1B, 0x61, 0x00],
+      BOLD_ON: [0x1B, 0x45, 0x01],
+      BOLD_OFF: [0x1B, 0x45, 0x00],
+      SIZE_LARGE: [0x1D, 0x21, 0x11], // 2x2
+      SIZE_NORMAL: [0x1D, 0x21, 0x00],
+      FEED: [0x1B, 0x64, 0x03],
+      LINE: encoder.encode("--------------------------------\n"),
+    };
+
+    let buffer = [];
+    const add = (arr) => buffer.push(...arr);
+    const addText = (txt) => buffer.push(...encoder.encode(txt));
+
+    add(esc.INIT);
+    add(esc.CENTER);
+    add(esc.SIZE_LARGE); add(esc.BOLD_ON);
+    addText("SEENHUB CAFE\n");
+    add(esc.SIZE_NORMAL); add(esc.BOLD_OFF);
+    addText("Al Ain, UAE\n");
+    addText("+971 50 911 9699\n");
+    add(esc.LINE);
+    add(esc.LEFT);
+    add(esc.BOLD_ON);
+    addText(`ORDER: ${order.id}\n`);
+    addText(`DATE:  ${new Date(order.timestamp).toLocaleDateString()}\n`);
+    addText(`TIME:  ${new Date(order.timestamp).toLocaleTimeString()}\n`);
+    add(esc.BOLD_OFF);
+    add(esc.LINE);
+
+    order.items.forEach(i => {
+      let name = i.name.slice(0, 20).padEnd(20);
+      let qty = ("x" + i.qty).padEnd(4);
+      let price = (i.price * i.qty).toFixed(2).padStart(8);
+      addText(`${name}${qty}${price}\n`);
+    });
+
+    add(esc.LINE);
+    add(esc.LEFT);
+    add(esc.BOLD_ON);
+    let totalLabel = "TOTAL".padEnd(22);
+    let totalPrice = "AED " + order.total.toFixed(2);
+    addText(`${totalLabel}${totalPrice.padStart(10)}\n`);
+    add(esc.BOLD_OFF);
+    add(esc.LINE);
+    add(esc.CENTER);
+    addText("THANK YOU FOR YOUR VISIT!\n\n");
+    add(esc.FEED);
+
+    await this.printRaw(new Uint8Array(buffer));
+    showToast("Printed Successfully", "success");
+  }
+}
 
 /* ---------- PERSISTENCE (CLOUD + INDEXEDDB) ---------- */
 // Initialize IndexedDB for large image storage
@@ -830,56 +964,15 @@ function renderMonthlyReport(container) {
 
 /* ===================== RECEIPT PRINTING ===================== */
 function printReceipt(order) {
-  if (!order) {
-    showToast('No order to print!', 'error');
+  if (!order) return;
+  
+  // Try Bluetooth Thermal Printer first
+  if (state.printer && state.printer.characteristic) {
+    state.printer.printReceipt(order);
     return;
   }
 
-  const cafeInfo = {
-    name: 'Seenhub Cafe',
-    address: 'Al Ain, UAE',
-    phone: '+971 50 911 9699',
-  };
-
-  const itemsHtml = order.items.map(i => `
-    <tr>
-      <td style="padding:4px 0; border-bottom: 0.5px solid #eee;">
-        <div style="font-weight:bold">${i.name}</div>
-        <div style="font-size:11px">x${i.qty} @ AED ${i.price.toFixed(2)}</div>
-      </td>
-      <td style="text-align:right; vertical-align:top; padding:4px 0">AED ${(i.price * i.qty).toFixed(2)}</td>
-    </tr>
-  `).join('');
-
-  const receiptHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8"/>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Receipt ${order.id}</title>
-      <style>
-        @page { size: 58mm auto; margin: 0; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-          font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-          font-size: 11px;
-          line-height: 1.2;
-          color: #000;
-          width: 48mm; /* Standard printable width for 58mm paper */
-          margin: 0 auto;
-          padding: 8px 4px;
-          background: #fff;
-        }
-        .center { text-align: center; }
-        .divider { border-top: 1px dashed #000; margin: 6px 0; }
-        .cafe-name { font-size: 16px; font-weight: bold; margin-bottom: 2px; }
-        .small { font-size: 10px; color: #444; }
-        table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-        .total-row { font-size: 15px; font-weight: bold; }
-function printReceipt(order) {
-  if (!order) return;
-  
+  // Fallback to Browser Print
   const frame = document.getElementById('print-frame');
   if (!frame) return;
 
@@ -891,8 +984,8 @@ function printReceipt(order) {
       <head>
         <style>
           @page { size: 58mm auto; margin: 0; }
-          body { margin: 0; padding: 0; background: white; }
-          * { -webkit-print-color-adjust: exact; }
+          body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; }
+          * { box-sizing: border-box; }
         </style>
       </head>
       <body>
@@ -907,7 +1000,7 @@ function printReceipt(order) {
   // Trigger print after load
   frame.onload = () => {
     setTimeout(() => {
-      showToast('🖨️ Sending to Printer...', 'success');
+      showToast('🖨️ Opening Print Dialog...', 'success');
       frame.contentWindow.focus();
       frame.contentWindow.print();
     }, 1200); // 1.2s delay for mobile device rendering
@@ -1166,6 +1259,12 @@ function bindEvents() {
   });
   document.getElementById('import-db-input').addEventListener('change', (e) => {
     importDatabase(e.target.files[0]);
+  });
+
+  // Printer Connection
+  document.getElementById('btn-printer-conn').addEventListener('click', () => {
+    if (!state.printer) state.printer = new BluetoothPrinter();
+    state.printer.connect();
   });
 
   // Scanner Events

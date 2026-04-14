@@ -201,6 +201,21 @@ html, body {
 }
 .icon-btn:active { transform: scale(0.9); background: var(--surface-alt); }
 
+.printer-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #cbd5e1; /* Gray by default */
+  transition: background 0.3s;
+}
+.printer-dot.connected {
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+.printer-dot.error {
+  background: var(--danger);
+}
+
 .add-btn {
   background: var(--text-main);
   color: white;
