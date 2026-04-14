@@ -195,9 +195,13 @@ async function loadImage(id) {
 }
 
 async function saveState() {
+  const now = Date.now();
+  state.lastUpdated = now;
+
   // 1. Save products/orders locally
   localStorage.setItem('cafe_products', JSON.stringify(state.products));
   localStorage.setItem('cafe_orders', JSON.stringify(state.orders));
+  localStorage.setItem('cafe_last_updated', now);
 
   // 2. Images are saved individually via saveImage() when products are created
   
@@ -207,7 +211,7 @@ async function saveState() {
       await db.collection('settings').doc('data').set({
         products: state.products,
         orders: state.orders.slice(0, 50),
-        updatedAt: Date.now()
+        updatedAt: now
       }, { merge: true });
     } catch (e) { console.warn("Cloud Sync offline"); }
   }
@@ -216,16 +220,25 @@ async function saveState() {
 async function loadState() {
   const CURRENT_VERSION = 'v5_smart_merge';
   const savedVersion = localStorage.getItem('cafe_app_version');
+  state.lastUpdated = parseInt(localStorage.getItem('cafe_last_updated') || '0');
 
   try {
     state.products = JSON.parse(localStorage.getItem('cafe_products') || '[]');
     state.orders = JSON.parse(localStorage.getItem('cafe_orders') || '[]');
     
-    // Load images for all products from IndexedDB
-    for (let p of state.products) {
-      if (dbRequest.readyState === 'done') {
+    // Helper to load images when DB is ready
+    const loadCachedImages = async () => {
+      for (let p of state.products) {
         state.imageDataCache[p.id] = await loadImage(p.id);
       }
+      renderPOS();
+      if (state.currentPage === 'products') renderProductsList();
+    };
+
+    if (dbRequest.readyState === 'done') {
+      loadCachedImages();
+    } else {
+      dbRequest.addEventListener('success', loadCachedImages);
     }
   } catch (e) { console.error('Load state partially failed', e); }
 
@@ -238,12 +251,24 @@ async function loadState() {
     db.collection('settings').doc('data').onSnapshot((doc) => {
       if (doc.exists()) {
         const cloudData = doc.data();
-        state.products = cloudData.products || state.products;
-        if (cloudData.updatedAt > (state.lastSync || 0)) {
-           state.orders = cloudData.orders || state.orders;
-           state.lastSync = cloudData.updatedAt;
+        const cloudTime = cloudData.updatedAt || 0;
+
+        // ONLY OVERWRITE IF CLOUD IS NEWER
+        if (cloudTime > state.lastUpdated) {
+          state.products = cloudData.products || state.products;
+          state.orders = cloudData.orders || state.orders;
+          state.lastUpdated = cloudTime;
+          localStorage.setItem('cafe_last_updated', cloudTime);
+          
+          showToast('Data synced from cloud', 'info');
+          renderPOS(); 
+          if (state.currentPage === 'products') renderProductsList();
+          if (state.currentPage === 'orders') renderOrdersList();
+        } else if (cloudTime < state.lastUpdated && cloudTime > 0) {
+          // Cloud is older, push local data up
+          console.log("Local data is newer, pushing to cloud...");
+          saveState();
         }
-        renderPOS(); 
       }
     });
   }
